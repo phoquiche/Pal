@@ -32,8 +32,7 @@ public class PalApplication {
 class MongoDbConnectController {
     @GetMapping(path = "/mongo")
     public String connectToMongoDb() {
-       String result = afficherPal();
-        return result;
+        return afficherPal();
     }
     @RequestMapping("/insert")
     public String insertData() {
@@ -94,22 +93,20 @@ class MongoDbConnectController {
         MongoDatabase database = mongoClient.getDatabase("Pal");
         MongoCollection<Document> collection = database.getCollection("pals");
         FindIterable<Document> iterDoc = collection.find();
-        String result = "<form action=\"/api/infopal\" method=\"post\"><select name=\"id\">";
-        for (Document doc : iterDoc) {
-            result += "<option value=\""+doc.get("_id")+"\">"+doc.get("id")+"</option>";
-        }
-        result+= "</select><input type=\"submit\" value=\"Submit\"></form>";
+        String result = "<form action=\"/api/infopal\" method=\"post\"><br><input type=\"text\" name=\"id\">Entre l'id du pal</input><input type=\"submit\" value=\"Submit\"></form>";
         return generateNavbar()+ result;
     }
 
     @RequestMapping("/infopal")
     public String infoPal(@RequestBody String info){
-        String id = info.split("&")[0].split("=")[1];
+
+        String id = info.split("=")[1];
+
         MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
         MongoDatabase database = mongoClient.getDatabase("Pal");
         MongoCollection<Document> collection = database.getCollection("pals");
-        Document myDoc = collection.find(Filters.eq("_id", new ObjectId(id))).first();
-        return generateNavbar()+"Nom: "+myDoc.get("name")+" Type: "+myDoc.get("types");
+        Document myDoc = collection.find(Filters.eq("id", Integer.parseInt(id))).first();
+        return generateNavbar()+"Nom: "+myDoc.get("name")+" Type: "+myDoc.get("types")+ " Image: <img src=\""+myDoc.get("imageWiki")+"\">"  ;
     }
 
     @RequestMapping("/findbyname")
@@ -118,11 +115,8 @@ class MongoDbConnectController {
         MongoDatabase database = mongoClient.getDatabase("Pal");
         MongoCollection<Document> collection = database.getCollection("pals");
         FindIterable<Document> iterDoc = collection.find();
-        String result = "<form action=\"/api/infopalbyname\" method=\"post\"><select name=\"name\">";
-        for (Document doc : iterDoc) {
-            result += "<option value=\""+doc.get("name")+"\">"+doc.get("name")+"</option>";
-        }
-        result+= "</select><input type=\"submit\" value=\"Submit\"></form>";
+        String result = "<form action=\"/api/infopalbyname\" method=\"post\"><input type=\"text\" name=\"name\">Entre le nom du pal</input><input type=\"submit\" value=\"Submit\"></form>";
+        //si le texte entree n'est pas dans la liste, on affiche un message d'erreur
         return generateNavbar()+ result;
     }
 
@@ -133,7 +127,12 @@ class MongoDbConnectController {
         MongoDatabase database = mongoClient.getDatabase("Pal");
         MongoCollection<Document> collection = database.getCollection("pals");
         Document myDoc = collection.find(Filters.eq("name", name)).first();
-        return generateNavbar()+"Nom: "+myDoc.get("name")+" Type: "+myDoc.get("types");
+        if (myDoc == null) {
+            return generateNavbar()+"Le pal n'existe pas";
+        }
+        else {
+            return generateNavbar()+"Nom: "+myDoc.get("name")+" Type: "+myDoc.get("types")+ " Image: <img src=\""+myDoc.get("imageWiki")+"\">";
+        }
     }
 
     @RequestMapping("/getbytype")
@@ -182,21 +181,25 @@ class MongoDbConnectController {
         result += "</table>";
         return generateNavbar()+ result;
     }
-
     public String afficherPal(){
         MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
         MongoDatabase database = mongoClient.getDatabase("Pal");
         MongoCollection<Document> collection = database.getCollection("pals");
         FindIterable<Document> iterDoc = collection.find();
-        StringBuilder result = new StringBuilder("<table border=1><tr><th>Nom</th><th>Type</th><th>Image</th></tr>");
+        String result = "<table border=1><tr><th>ID</th><th>Nom</th><th>Type</th><th>Image</tr>";
+        ArrayList<Integer> appeared = new ArrayList<>();
         for (Document doc : iterDoc) {
-            result.append("<tr><td>").append(doc.get("name")).append("</td><td>").append(doc.get("types")).append("</td><td><img src=\"").append(doc.get("imageWiki")).append("\"></td>");
+            int id = doc.getInteger("id");
+            if (appeared.contains(id)) {
+                break;
+            }
 
+            result += "<tr><td>"+doc.get("id")+"</td><td>" + doc.get("name") + "</td><td>" + doc.get("types") + "</td><td><img src=\""+doc.get("imageWiki")+"\">"+"</td></tr>";
+            appeared.add(id);
         }
 
 
-
-        result.append("</tr></table>");
+        result += "</table>";
         return generateNavbar()+ result;
     }
 
